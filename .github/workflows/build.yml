@@ -57,7 +57,7 @@ jobs:
           libffi-dev \
           uuid-dev \
           libopenjp2-7 \
-          libtiff5 \
+          libtiff-dev \
           libcairo2-dev \
           pkg-config \
           python3-setuptools
