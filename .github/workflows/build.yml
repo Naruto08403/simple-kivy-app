@@ -1,91 +1,32 @@
+# Tested: 2024/08/05
+# by Kasper Arfman
 name: Build APK
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+on: [push]
 jobs:
-  build:
+  build-android:
+    name: Build for Android
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Buildozer dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev automake
+          pip install --user --upgrade Cython virtualenv
+          pip install --user --upgrade buildozer
+          echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
-    - name: Install core dependencies
-      run: |
-        python -m pip install --upgrade pip
-        sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
+      - name: Handle Java path
+        run: |
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          sudo update-java-alternatives --set ${JAVA_HOME}
+          export PATH=$JAVA_HOME/bin:$PATH
+          yes | buildozer -v android debug
 
-    - name: Install Cython and Virtualenv
-      run: |
-        pip3 install --user --upgrade Cython==0.29.33 virtualenv
-
-    - name: Install Buildozer
-      run: |
-        git clone https://github.com/kivy/buildozer
-        cd buildozer
-        python setup.py build
-        pip install -e .
-        cd ..
-
-    - name: Install additional dependencies
-      run: |
-        sudo apt-get install -y \
-          python3-pip \
-          build-essential \
-          git \
-          python3 \
-          python3-dev \
-          ffmpeg \
-          libsdl2-dev \
-          libsdl2-image-dev \
-          libsdl2-mixer-dev \
-          libsdl2-ttf-dev \
-          libportmidi-dev \
-          libswscale-dev \
-          libavformat-dev \
-          libavcodec-dev \
-          zlib1g-dev \
-          libgstreamer1.0 \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good \
-          build-essential \
-          libsqlite3-dev \
-          sqlite3 \
-          bzip2 \
-          libbz2-dev \
-          zlib1g-dev \
-          libssl-dev \
-          openssl \
-          libgdbm-dev \
-          libgdbm-compat-dev \
-          liblzma-dev \
-          libreadline-dev \
-          libncursesw5-dev \
-          libffi-dev \
-          uuid-dev \
-          libopenjp2-7 \
-          libtiff-dev \
-          libcairo2-dev \
-          pkg-config \
-          python3-setuptools
-
-    - name: Build with Buildozer
-      run: |
-        # Create buildozer.spec if it doesn't exist
-        test -f buildozer.spec || buildozer init
-        # Build the APK
-        buildozer android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
-      with:
-        name: app-debug
-        path: bin/*.apk
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: package
+          path: bin/*.apk
